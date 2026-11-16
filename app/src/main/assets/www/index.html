@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1">
+<meta name="theme-color" content="#101820">
+<title>Actual Size — Photo Viewer v4</title>
+<style>
+:root { color-scheme:dark; --bg:#101820; --surface:#192630; --edge:#344852; --fg:#f1f6f7; --muted:#adbdc5; --aqua:#82e4d8; --amber:#ffd29a }
+* { box-sizing:border-box }
+html,body { margin:0; background:var(--bg); color:var(--fg); font-family:system-ui,-apple-system,Roboto,'Segoe UI',sans-serif }
+button,input,select { font:inherit }
+button { cursor:pointer }
+button:focus-visible,input:focus-visible,select:focus-visible,summary:focus-visible { outline:2px solid var(--aqua); outline-offset:2px }
+[hidden] { display:none!important }
+main { max-width:660px; margin:auto; padding:18px 13px 92px }
+header.top { margin:0 1px 19px }
+.eyebrow { font-size:11px; letter-spacing:.14em; text-transform:uppercase; font-weight:750; color:var(--aqua) }
+h1 { font-size:30px; letter-spacing:-.05em; margin:5px 0 5px }
+p { margin:0 }
+.intro,.help { color:var(--muted); line-height:1.48; font-size:13px }
+section { border:1px solid var(--edge); background:var(--surface); border-radius:15px; padding:14px; margin-bottom:11px }
+.section-head { display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:10px }
+h2 { font-size:15px; font-weight:750; margin:0 }
+.num { color:var(--aqua); margin-right:7px; font-size:13px }
+small,.subtext { font-size:11px; color:var(--muted) }
+summary { display:flex; align-items:center; justify-content:space-between; list-style:none; cursor:pointer; user-select:none }
+summary::-webkit-details-marker { display:none }
+.chip { font-size:11px; color:var(--aqua); text-align:right }
+.chev { color:var(--muted); margin-left:6px }
+.detail-body { border-top:1px solid var(--edge); padding-top:14px; margin-top:12px }
+.row { display:flex; align-items:center; gap:10px; flex-wrap:wrap }
+.row.between { justify-content:space-between }
+.controls { display:flex; align-items:center; gap:5px }
+.field { font-size:12px; color:var(--muted); display:flex; flex-direction:column; gap:5px }
+input:not([type=file]):not([type=range]), select { border:1px solid #506573; background:#10202a; color:var(--fg); height:41px; border-radius:9px; padding:8px 10px; min-width:0; width:100%; font-size:15px }
+input[type=range] { accent-color:var(--aqua) }
+button.primary { color:#0c2522; border:0; border-radius:10px; background:var(--aqua); padding:11px 15px; font-weight:760 }
+button.primary:disabled { opacity:.38; cursor:not-allowed }
+button.ghost { color:var(--fg); border:1px solid #526878; border-radius:9px; background:#253743; padding:9px 12px; font-size:13px; font-weight:650 }
+button.textbtn { color:var(--aqua); border:0; background:transparent; padding:6px 0; font-weight:650; font-size:12px }
+button.tool { border:1px solid #526878; color:var(--fg); background:#253743; border-radius:8px; height:36px; min-width:38px; font-size:17px; font-weight:650 }
+button.tool.fit { padding:0 12px; font-size:12px }
+.specs { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:8px; margin:10px 0 }
+.specs .field { min-width:0 }
+.screen-meta { margin:9px 0 0; font-size:12px; color:var(--muted); line-height:1.45 }
+.screen-meta b { color:var(--fg) }
+.cal-buttons { margin-top:12px; display:flex; gap:8px; align-items:center; flex-wrap:wrap }
+.file-label { display:flex; align-items:center; justify-content:center; flex-direction:column; border:1px dashed #748793; background:#12212a; border-radius:12px; padding:15px; min-height:89px; cursor:pointer; gap:4px; text-align:center }
+.file-label strong { font-size:14px; font-weight:720 }
+.file-label span { font-size:11px; color:var(--muted) }
+.file-label input { position:absolute; opacity:0; width:1px; height:1px }
+.editor { margin-top:11px }
+.editor-help { font-size:12px; color:var(--muted); line-height:1.45; padding-bottom:9px }
+#photoCanvas { display:block; width:100%; height:clamp(270px,46vh,480px); touch-action:none; background:#0e1820; border:1px solid #485c68; border-radius:10px; cursor:grab; user-select:none; -webkit-user-select:none }
+.toolrow { display:flex; align-items:center; justify-content:space-between; padding-top:9px; gap:8px }
+.toolrow .miniinfo { color:var(--muted); font-size:11px; min-width:70px }
+.known { display:grid; grid-template-columns: minmax(0,1fr) 108px; gap:9px; margin-top:12px }
+.known input { font-size:19px!important }
+.result { font-size:12px; color:var(--muted); margin-top:11px; min-height:36px; line-height:1.5 }
+.result strong { color:var(--fg) }
+.caution { color:var(--amber); font-size:12px; line-height:1.45; margin-top:9px }
+.launch { position:sticky; bottom:5px; z-index:4; padding:9px 0; background:linear-gradient(0deg,var(--bg) 77%,transparent) }
+.launch button { width:100%; font-size:16px; min-height:50px }
+.launch p { color:var(--muted); text-align:center; padding-top:6px; font-size:11px }
+.overlay { position:fixed; z-index:40; inset:0; background:#0d1820; display:flex; flex-direction:column; min-width:0 }
+.overlayTop { flex:none; display:flex; align-items:center; gap:11px; padding:8px 11px; padding-top:max(8px,env(safe-area-inset-top)); min-height:56px; background:#1b2b36; border-bottom:1px solid var(--edge) }
+.overlayTop strong { font-size:14px; display:block }
+.overlayTop span { font-size:11px; color:var(--muted); display:block }
+.viewport { flex:1; min-height:0; overflow:auto; overscroll-behavior:contain; background:#303b45; touch-action:pan-x pan-y }
+.actualInner { min-height:100%; min-width:100%; width:max-content; display:flex; justify-content:center; align-items:center }
+.actualImg { display:block; width:100%; height:100%; max-width:none; max-height:none; border:0; object-fit:fill; image-rendering:auto; pointer-events:none; -webkit-user-drag:none }
+.actualStage { position:relative; flex:none; user-select:none; -webkit-user-select:none; -webkit-touch-callout:none; }
+.rulerSvg { position:absolute; top:0; left:0; width:100%; height:100%; overflow:visible; pointer-events:none; touch-action:none; user-select:none; -webkit-user-select:none; -webkit-touch-callout:none; }
+.rulerHit { pointer-events:stroke; touch-action:none; cursor:grab; }
+.rulerLabelHit { pointer-events:all; touch-action:none; cursor:grab; }
+.rulerEndHit { pointer-events:all; touch-action:none; cursor:crosshair; }
+.measureValue { color:var(--aqua); font-size:13px; font-weight:750; white-space:nowrap; }
+.measureHint { color:var(--muted); font-size:10px; }
+#toggleRuler { margin-left:auto; white-space:nowrap; }
+#toggleRuler[aria-pressed=true] { color:#0c2522; background:var(--aqua); border-color:var(--aqua) }
+.overlayBottom { flex:none; background:#1b2b36; border-top:1px solid var(--edge); padding:9px 13px; padding-bottom:max(9px,env(safe-area-inset-bottom)); display:flex; justify-content:space-between; align-items:center; gap:12px }
+.scaleReadout { font-size:10px; color:var(--muted) }
+.scaleLine { height:10px; border:solid var(--aqua); border-width:0 1px 1px; margin:4px 0 5px }
+.cardCalibration { justify-content:space-between }
+.cardArea { flex:1; padding:35px 12px 10px; display:flex; flex-direction:column; justify-content:flex-start; align-items:stretch; overflow:auto }
+.cardArea h2 { font-size:21px; margin:0 0 10px }
+.cardArea p { line-height:1.5; font-size:14px; color:var(--muted); margin-bottom:24px }
+.cardGuide { width:100%; overflow:visible; background:#192a33; border:1px solid var(--edge); border-radius:9px; padding:28px 5px 15px; margin-bottom:16px }
+.cardMeasure { height:19px; position:relative; margin-left:6px; border-bottom:2px solid var(--aqua) }
+.cardMeasure:before,.cardMeasure:after { content:''; background:var(--aqua); width:2px; height:16px; position:absolute; bottom:-8px }
+.cardMeasure:before { left:0 } .cardMeasure:after { right:0 }
+.cardLength { font-size:12px; color:var(--muted); margin-top:10px }
+.cardActions { background:#1b2b36; padding:15px 12px; padding-bottom:max(14px,env(safe-area-inset-bottom)); flex:none }
+.cardSliders { display:grid; grid-template-columns:42px 1fr 42px; align-items:center; gap:8px; margin:8px 0 14px }
+.cardActions .primary { width:100%; min-height:48px }
+@media(max-width:365px) { main { padding-left:10px;padding-right:10px } section { padding:12px } .specs { gap:5px } }
+</style>
+</head>
+<body>
+<main id="setup">
+  <header class="top">
+    <div class="eyebrow">Physical-scale image viewer</div>
+    <h1>Actual Size</h1>
+    <p class="intro">Measure a known feature in a photo, then explore the entire image at true physical scale.</p>
+  </header>
+  <section>
+    <details id="calDetails">
+      <summary>
+        <h2><span class="num">01</span>Screen calibration</h2>
+        <div><span class="chip" id="calStatus">Set up display</span><span class="chev">⌄</span></div>
+      </summary>
+      <div class="detail-body">
+        <label class="field">Your phone
+          <select id="phoneSelect">
+            <option value="pixel7">Google Pixel 7 — 416 PPI</option>
+            <option value="custom">Other phone — enter screen specs</option>
+          </select>
+        </label>
+        <div id="customSpecs" hidden>
+          <div class="specs">
+            <label class="field">Screen width (px)<input id="specWidth" type="number" inputmode="numeric" min="1" placeholder="1080"></label>
+            <label class="field">Screen height (px)<input id="specHeight" type="number" inputmode="numeric" min="1" placeholder="2400"></label>
+            <label class="field">Diagonal (in)<input id="specDiagonal" type="number" inputmode="decimal" min="1" step="any" placeholder="6.3"></label>
+          </div>
+        </div>
+        <div id="specInfo" class="screen-meta"></div>
+        <div class="cal-buttons">
+          <button id="useSpecs" class="primary" type="button">Use screen specifications</button>
+          <button id="checkCard" class="ghost" type="button">Check with a card</button>
+        </div>
+        <p class="help" style="margin-top:10px">A card check can refine the estimate. Repeat if browser zoom or phone display settings change.</p>
+      </div>
+    </details>
+  </section>
+  <section>
+    <div class="section-head"><h2><span class="num">02</span>Photo and measuring line</h2></div>
+    <label class="file-label">
+      <input id="photoPicker" type="file" accept="image/*">
+      <strong id="photoLabel">Choose an image</strong>
+      <span>From your phone · stays on your device</span>
+    </label>
+    <div id="editor" class="editor" hidden>
+      <p class="editor-help">Drag the <b style="color:var(--aqua)">end ticks</b> onto a feature of known length. Drag the line to move it; drag elsewhere to pan. Pinch to zoom.</p>
+      <canvas id="photoCanvas" aria-label="Zoomable photo with line measurement and perpendicular end ticks"></canvas>
+      <div class="toolrow">
+        <div class="controls"><button class="textbtn" id="resetLine" type="button">Reset line</button><span class="miniinfo" id="zoomInfo">100%</span></div>
+        <div class="controls">
+          <button class="tool" id="zoomOut" type="button" aria-label="Zoom out">−</button>
+          <button class="tool" id="zoomIn" type="button" aria-label="Zoom in">+</button>
+          <button class="tool fit" id="zoomFit" type="button">Fit</button>
+        </div>
+      </div>
+      <div class="known">
+        <label class="field">Length between the end ticks<input id="knownLength" type="number" min="0" inputmode="decimal" step="any" placeholder="e.g. 20"></label>
+        <label class="field">Unit<select id="units"><option value="mm">mm</option><option value="cm">cm</option><option value="in">inches</option></select></label>
+      </div>
+      <div id="imageResult" class="result"></div>
+    </div>
+  </section>
+  <div class="launch">
+    <button id="showSize" class="primary" type="button" disabled>View photo at actual size</button>
+    <p id="readyText">Choose a photo to begin.</p>
+  </div>
+</main>
+<div id="cardOverlay" class="overlay" role="dialog" aria-modal="true" aria-label="Card screen calibration" hidden>
+  <header class="overlayTop">
+    <button id="closeCard" type="button" class="ghost">← Back</button>
+    <div><strong>Check physical screen scale</strong><span>53.98 mm reference</span></div>
+  </header>
+  <div class="cardArea">
+    <h2>Match a card's short edge</h2>
+    <p>Place the short edge of a standard credit/debit card against the line, and adjust until the end marks match its corners.</p>
+    <div class="cardGuide"><div id="cardMeasure" class="cardMeasure"></div><div class="cardLength">53.98 mm · between the markers</div></div>
+    <span class="help" id="cardCompare"></span>
+  </div>
+  <div class="cardActions">
+    <div class="cardSliders">
+      <button id="cardMinus" class="tool" type="button" aria-label="Shorten reference">−</button>
+      <input id="cardRange" type="range" step="0.5" min="50" max="500" aria-label="Reference length in screen pixels">
+      <button id="cardPlus" class="tool" type="button" aria-label="Lengthen reference">+</button>
+    </div>
+    <button id="saveCard" class="primary" type="button">Use this calibration</button>
+  </div>
+</div>
+<div id="actualOverlay" class="overlay" role="dialog" aria-modal="true" aria-label="Actual size photo" hidden>
+  <header class="overlayTop">
+    <button type="button" id="backActual" class="ghost">← Back</button>
+    <div><strong>1:1 actual size</strong><span id="actualInfo"></span></div>
+    <button type="button" id="toggleRuler" class="ghost" aria-pressed="false">Measure</button>
+  </header>
+  <div class="viewport" id="viewport">
+    <div class="actualInner">
+      <div class="actualStage" id="actualStage">
+        <img id="actualImg" class="actualImg" alt="Uploaded photograph at calibrated physical size" draggable="false">
+        <svg id="rulerSvg" class="rulerSvg" aria-label="Optional movable size measurement" hidden>
+          <g stroke-linecap="round">
+            <path id="rulerShadow" stroke="#091922" stroke-width="6" fill="none"/>
+            <path id="rulerVisual" stroke="#ffd29a" stroke-width="3" fill="none"/>
+            <line id="rulerLineHit" class="rulerHit" stroke="transparent" stroke-width="96" data-handle="line"/>
+            <circle id="rulerAHit" class="rulerEndHit" fill="transparent" r="49" data-handle="a"/>
+            <circle id="rulerBHit" class="rulerEndHit" fill="transparent" r="49" data-handle="b"/>
+          </g>
+          <g id="rulerLabel">
+            <rect id="rulerLabelHit" class="rulerLabelHit" rx="12" fill="transparent" data-handle="line"/>
+            <rect id="rulerLabelBg" rx="6" fill="#0c202b" fill-opacity=".95" pointer-events="none"/>
+            <text id="rulerLabelText" text-anchor="middle" y="2" font-size="13" font-weight="700" fill="#ffe1b5" pointer-events="none"></text>
+          </g>
+        </svg>
+      </div>
+    </div>
+  </div>
+  <footer class="overlayBottom">
+    <div><div class="scaleReadout">10 mm</div><div class="scaleLine" id="scaleLine"></div></div>
+    <div style="text-align:right"><div id="measureValue" class="measureValue" hidden></div><div id="measureHint" class="measureHint">Swipe to move around the photo</div></div>
+  </footer>
+</div>
+<script>
+(() => {
+'use strict';
+const $=id=>document.getElementById(id);
+const FACTOR={mm:1,cm:10,in:25.4}, CARD_MM=53.98, KEY='actual-size-photo-v2';
+const clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
+const fmt=n=>Number(n.toPrecision(4)).toLocaleString(undefined,{maximumFractionDigits:3});
+const dpr=()=>window.devicePixelRatio||1;
+const state={method:null,pxmm:null,dpr:null,custom:{w:null,h:null,diag:null},phone:'pixel7',photo:null,photoURL:null,pts:null,rulerPts:null,rulerOn:false,actualScale:0,zoom:1,ox:0,oy:0,fit:1,canvasW:0,canvasH:0};
+function readStorage(){try{const x=JSON.parse(localStorage.getItem(KEY));if(x&&typeof x==='object'){
+  if(x.phone==='custom')state.phone='custom';
+  if(x.custom&&Number(x.custom.w)>0&&Number(x.custom.h)>0&&Number(x.custom.diag)>0)state.custom=x.custom;
+  if(x.method==='card'&&x.pxmm>.3&&x.pxmm<30){state.method='card';state.pxmm=x.pxmm;state.dpr=x.dpr||dpr();}
+  if(x.method==='specs'){state.method='specs';}
+}}catch(e){}
+if(!state.method){try{const old=Number(localStorage.getItem('actual-size-photo-viewer-px-per-mm-v1'));if(old>.3&&old<30){state.method='card';state.pxmm=old;state.dpr=dpr();}}catch(e){}}
+}
+function persist(){try{localStorage.setItem(KEY,JSON.stringify({phone:state.phone,custom:state.custom,method:state.method,pxmm:state.pxmm,dpr:state.dpr}));}catch(e){}}
+function physicalPpi(){if(state.phone==='pixel7')return 416;
+const {w,h,diag}=state.custom;return w>0&&h>0&&diag>0?Math.hypot(w,h)/diag:NaN;}
+function currentPxmm(){if(state.method==='specs'){const v=physicalPpi()/(25.4*dpr());return Number.isFinite(v)&&v>.3&&v<30?v:null;}
+// Card calibration is tied to the CSS pixel ratio at the time it was measured.
+if(state.method==='card'){if(Math.abs(dpr()/(state.dpr||dpr())-1)>.015)return null;return state.pxmm;}
+return null;}
+function calibrationDescription(){if(!state.method)return 'Not calibrated';if(state.method==='card')return currentPxmm()?'Card checked':'Recheck screen';return currentPxmm()?'Screen estimate':'Check specifications';}
+function updateCal(){const pxmm=currentPxmm(),s=$('calStatus');s.textContent=calibrationDescription();s.style.color=pxmm?'var(--aqua)':'var(--amber)';
+const pp=physicalPpi(),p=$('specInfo');p.innerHTML=Number.isFinite(pp)?`Display density: <b>${fmt(pp)} hardware pixels/in</b> · Browser ratio: <b>${fmt(dpr())}</b> · Estimated scale: <b>${fmt(pp/(25.4*dpr()))} screen px/mm</b>`:'Enter valid display specifications.';
+updateResult();}
+function readCustom(){const w=Number($('specWidth').value),h=Number($('specHeight').value),diag=Number($('specDiagonal').value);state.custom={w,h,diag};persist();updateCal();}
+$('phoneSelect').addEventListener('change',e=>{state.phone=e.target.value;$('customSpecs').hidden=state.phone!=='custom';
+// The user must apply the new specification; don't silently overwrite a card-checked calibration.
+persist();updateCal();});
+for(const id of ['specWidth','specHeight','specDiagonal'])$(id).addEventListener('input',readCustom);
+$('useSpecs').addEventListener('click',()=>{if(!(physicalPpi()>=100&&physicalPpi()<=1300)){alert('Please check the screen specifications.');return;}
+state.method='specs';persist();updateCal();$('calDetails').open=false;});
+function cardBounds(){const range=$('cardRange');const max=Math.max(90,window.innerWidth-36);range.max=String(max);range.min='55';
+const v=currentPxmm()||physicalPpi()/(25.4*dpr())||5.4;if(!Number.isFinite(Number(range.value))||!range.dataset.used)range.value=String(clamp(v*CARD_MM,55,max));
+else range.value=String(clamp(Number(range.value),55,max));drawCard();}
+function drawCard(){const v=Number($('cardRange').value);$('cardMeasure').style.width=`${v}px`;
+const original=currentPxmm();$('cardCompare').textContent=original?`Current estimate: ${fmt(original*CARD_MM)} screen px. Adjust line if it differs from your card.`:'This calibration measures the physical size of a browser pixel.';}
+$('checkCard').addEventListener('click',()=>{showOverlay('cardOverlay');$('cardRange').dataset.used='';cardBounds();});
+$('closeCard').addEventListener('click',()=>hideOverlay('cardOverlay'));
+$('cardRange').addEventListener('input',()=>{$('cardRange').dataset.used='1';drawCard();});
+$('cardMinus').addEventListener('click',()=>{const e=$('cardRange');e.value=String(clamp(Number(e.value)-.5,Number(e.min),Number(e.max)));e.dataset.used='1';drawCard();});
+$('cardPlus').addEventListener('click',()=>{const e=$('cardRange');e.value=String(clamp(Number(e.value)+.5,Number(e.min),Number(e.max)));e.dataset.used='1';drawCard();});
+$('saveCard').addEventListener('click',()=>{state.method='card';state.pxmm=Number($('cardRange').value)/CARD_MM;state.dpr=dpr();persist();hideOverlay('cardOverlay');$('calDetails').open=false;updateCal();});
+function showOverlay(id){$(id).hidden=false;document.body.style.overflow='hidden';}
+function hideOverlay(id){$(id).hidden=true;document.body.style.overflow='';}
+// Editor: points are stored in original-image pixel coordinates.
+const canvas=$('photoCanvas'),ctx=canvas.getContext('2d');const pointers=new Map();let gesture=null;
+const photoToScreen=p=>({x:p.x*state.fit*state.zoom+state.ox,y:p.y*state.fit*state.zoom+state.oy});
+const screenToPhoto=p=>({x:(p.x-state.ox)/(state.fit*state.zoom),y:(p.y-state.oy)/(state.fit*state.zoom)});
+const pointOf=e=>{const r=canvas.getBoundingClientRect();return{x:e.clientX-r.left,y:e.clientY-r.top}};
+const distance=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
+function initialFit(){if(!state.photo)return;const{canvasW:w,canvasH:h,photo}=state;
+state.fit=Math.min(w/photo.naturalWidth,h/photo.naturalHeight)*.96;
+state.zoom=1;state.ox=(w-photo.naturalWidth*state.fit)/2;state.oy=(h-photo.naturalHeight*state.fit)/2;drawEditor();}
+function fitZoom(){if(!state.photo)return;initialFit();}
+function updateCanvas(){if(!state.photo||$('editor').hidden)return;const box=canvas.getBoundingClientRect();if(!(box.width>0&&box.height>0))return;
+const oldW=state.canvasW,oldH=state.canvasH;const oldFit=state.fit,oldZoom=state.zoom;
+const centerOnPhoto=oldW?{x:(oldW/2-state.ox)/(oldFit*oldZoom),y:(oldH/2-state.oy)/(oldFit*oldZoom)}:null;
+state.canvasW=box.width;state.canvasH=box.height;
+const ratio=Math.min(2.5,dpr());canvas.width=Math.round(box.width*ratio);canvas.height=Math.round(box.height*ratio);ctx.setTransform(ratio,0,0,ratio,0,0);
+state.fit=Math.min(box.width/state.photo.naturalWidth,box.height/state.photo.naturalHeight)*.96;
+if(centerOnPhoto){state.ox=box.width/2-centerOnPhoto.x*state.fit*state.zoom;state.oy=box.height/2-centerOnPhoto.y*state.fit*state.zoom;}
+else{state.ox=(box.width-state.photo.naturalWidth*state.fit)/2;state.oy=(box.height-state.photo.naturalHeight*state.fit)/2;}
+drawEditor();}
+function drawEditor(){if(!state.photo)return;
+const {canvasW:w,canvasH:h,photo}=state;ctx.clearRect(0,0,w,h);ctx.fillStyle='#0d1720';ctx.fillRect(0,0,w,h);
+const s=state.fit*state.zoom;ctx.save();ctx.translate(state.ox,state.oy);ctx.scale(s,s);ctx.imageSmoothingEnabled=true;ctx.imageSmoothingQuality='high';ctx.drawImage(photo,0,0);ctx.restore();
+const [a,b]=state.pts.map(photoToScreen);
+ctx.save();ctx.lineCap='round';ctx.strokeStyle='rgba(3,18,25,.90)';ctx.lineWidth=6;ctx.beginPath();ctx.moveTo(a.x,a.y);ctx.lineTo(b.x,b.y);ctx.stroke();
+ctx.strokeStyle='#82e4d8';ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(a.x,a.y);ctx.lineTo(b.x,b.y);ctx.stroke();
+// Perpendicular end ticks mark exact endpoint positions; the touch targets stay generously sized.
+const dx=b.x-a.x,dy=b.y-a.y,L=Math.hypot(dx,dy)||1,nx=-dy/L,ny=dx/L;
+for(const p of [a,b]){
+  ctx.beginPath();ctx.moveTo(p.x-nx*12,p.y-ny*12);ctx.lineTo(p.x+nx*12,p.y+ny*12);
+  ctx.strokeStyle='rgba(3,18,25,.90)';ctx.lineWidth=6;ctx.stroke();
+  ctx.strokeStyle='#82e4d8';ctx.lineWidth=3;ctx.stroke();
+}
+const len=Number($('knownLength').value);const label=len>0?`${fmt(len)} ${$('units').value==='in'?'in':$('units').value}`:'Move endpoints';
+const mid={x:(a.x+b.x)/2,y:(a.y+b.y)/2};ctx.font='bold 13px system-ui,sans-serif';
+const tw=ctx.measureText(label).width+17;const labelY=mid.y-26;ctx.fillStyle='rgba(10,24,31,.94)';ctx.beginPath();ctx.roundRect(mid.x-tw/2,labelY-15,tw,24,6);ctx.fill();
+ctx.fillStyle='#e8fdf9';ctx.textAlign='center';ctx.fillText(label,mid.x,labelY+2);ctx.restore();
+$('zoomInfo').textContent=`${Math.round(state.zoom*100)}%`;
+}
+function hitTarget(pos){const [a,b]=state.pts.map(photoToScreen);
+if(distance(pos,a)<28)return 'a';if(distance(pos,b)<28)return 'b';
+const dx=b.x-a.x,dy=b.y-a.y,t=clamp(((pos.x-a.x)*dx+(pos.y-a.y)*dy)/(dx*dx+dy*dy||1),0,1);
+if(distance(pos,{x:a.x+t*dx,y:a.y+t*dy})<16)return 'line';return 'pan';}
+function pinchStart(){const ps=[...pointers.values()].slice(0,2);if(ps.length<2)return;
+const mid={x:(ps[0].x+ps[1].x)/2,y:(ps[0].y+ps[1].y)/2};
+gesture={type:'pinch',dist:Math.max(distance(ps[0],ps[1]),1),zoom:state.zoom,anchor:screenToPhoto(mid)};}
+canvas.addEventListener('pointerdown',e=>{if(!state.photo)return;e.preventDefault();canvas.setPointerCapture(e.pointerId);const p=pointOf(e);pointers.set(e.pointerId,p);
+if(pointers.size>=2){pinchStart();return;}
+const mode=hitTarget(p);gesture={type:mode,prev:p};});
+canvas.addEventListener('pointermove',e=>{if(!pointers.has(e.pointerId)||!state.photo)return;
+const p=pointOf(e);pointers.set(e.pointerId,p);
+if(pointers.size>=2){if(!gesture||gesture.type!=='pinch')pinchStart();const ps=[...pointers.values()].slice(0,2),mid={x:(ps[0].x+ps[1].x)/2,y:(ps[0].y+ps[1].y)/2};
+state.zoom=clamp(gesture.zoom*distance(ps[0],ps[1])/gesture.dist,0.35,18);
+state.ox=mid.x-gesture.anchor.x*state.fit*state.zoom;state.oy=mid.y-gesture.anchor.y*state.fit*state.zoom;
+}else if(gesture){const prev=gesture.prev;const dx=p.x-prev.x,dy=p.y-prev.y;
+if(gesture.type==='pan'){state.ox+=dx;state.oy+=dy;}
+else{const mx=dx/(state.fit*state.zoom),my=dy/(state.fit*state.zoom);const targets=gesture.type==='a'?[0]:gesture.type==='b'?[1]:[0,1];
+for(const i of targets){state.pts[i].x+=mx;state.pts[i].y+=my;}}
+gesture.prev=p;
+}
+drawEditor();updateResult();});
+function pointerEnd(e){pointers.delete(e.pointerId);if(pointers.size===1){gesture={type:'pan',prev:[...pointers.values()][0]};}else if(pointers.size===0)gesture=null;else pinchStart();}
+canvas.addEventListener('pointerup',pointerEnd);canvas.addEventListener('pointercancel',pointerEnd);
+canvas.addEventListener('wheel',e=>{if(!state.photo)return;e.preventDefault();const pt=pointOf(e);zoomAt(pt,e.deltaY<0?1.11:1/1.11);},{passive:false});
+function zoomAt(pt,mult){if(!state.photo)return;const anchor=screenToPhoto(pt);state.zoom=clamp(state.zoom*mult,.35,18);
+state.ox=pt.x-anchor.x*state.fit*state.zoom;state.oy=pt.y-anchor.y*state.fit*state.zoom;drawEditor();}
+$('zoomIn').addEventListener('click',()=>zoomAt({x:state.canvasW/2,y:state.canvasH/2},1.35));
+$('zoomOut').addEventListener('click',()=>zoomAt({x:state.canvasW/2,y:state.canvasH/2},1/1.35));
+$('zoomFit').addEventListener('click',fitZoom);
+$('resetLine').addEventListener('click',()=>{if(!state.photo)return;const W=state.photo.naturalWidth,H=state.photo.naturalHeight;state.pts=[{x:W*.30,y:H*.5},{x:W*.70,y:H*.5}];drawEditor();updateResult();});
+$('photoPicker').addEventListener('change',e=>{const file=e.target.files?.[0];if(!file)return;
+const url=URL.createObjectURL(file),img=new Image();
+img.onload=()=>{if(state.photoURL)URL.revokeObjectURL(state.photoURL);state.photoURL=url;state.photo=img;
+const W=img.naturalWidth,H=img.naturalHeight;state.pts=[{x:W*.30,y:H*.5},{x:W*.70,y:H*.5}];state.zoom=1;state.canvasW=0;state.rulerPts=null;state.rulerOn=false;
+$('editor').hidden=false;$('photoLabel').textContent=file.name.length>40?file.name.slice(0,36)+'…':file.name;
+requestAnimationFrame(()=>{updateCanvas();updateResult();});};
+img.onerror=()=>{URL.revokeObjectURL(url);alert('Could not open this image. Try JPEG or PNG.');};img.src=url;});
+// Known distance, not the image boundaries, sets the image's real-world scale.
+function measurement(){if(!state.photo||!state.pts)return null;
+const sep=distance(...state.pts),val=Number($('knownLength').value)*FACTOR[$('units').value];
+if(!(val>0&&sep>0.01&&Number.isFinite(val)))return null;
+const mmPerPixel=val/sep;return{sep,mmPerPixel,wmm:state.photo.naturalWidth*mmPerPixel,hmm:state.photo.naturalHeight*mmPerPixel};}
+function updateResult(){const m=measurement(),scale=currentPxmm(),result=$('imageResult');$('showSize').disabled=!(m&&scale);
+if(!m){result.textContent='Place the line along a known-size feature, then enter its length.';}
+else{const f=FACTOR[$('units').value],unit=$('units').value==='in'?'in':$('units').value;
+result.innerHTML=`Entire image at scale: <strong>${fmt(m.wmm/f)} × ${fmt(m.hmm/f)} ${unit}</strong><br>Reference line: <strong>${fmt(m.sep)} photo pixels</strong>`;}
+$('readyText').textContent=!state.photo?'Choose a photo to begin.':!m?'Enter a positive known length.':!scale?'Set your screen calibration above.':'Ready to view at 1:1 physical scale.';
+}
+let prevUnit='mm';$('knownLength').addEventListener('input',()=>{drawEditor();updateResult();});
+$('units').addEventListener('change',()=>{const next=$('units').value,val=Number($('knownLength').value);if(Number.isFinite(val))$('knownLength').value=String(Number((val*FACTOR[prevUnit]/FACTOR[next]).toPrecision(9)));
+prevUnit=next;drawEditor();updateResult();if(state.rulerOn)updateRuler();});
+$('showSize').addEventListener('click',()=>{const m=measurement(),pxmm=currentPxmm();if(!m||!pxmm||!state.photoURL)return;
+// True size is defined by the reference segment in the *uncropped* image.
+const w=Math.max(1,m.wmm*pxmm),h=Math.max(1,m.hmm*pxmm);
+const img=$('actualImg');img.src=state.photoURL;const stage=$('actualStage');stage.style.width=w+'px';stage.style.height=h+'px';state.actualScale=m.mmPerPixel*pxmm;
+const f=FACTOR[$('units').value],u=$('units').value==='in'?'in':$('units').value;
+$('actualInfo').textContent=`${fmt(m.wmm/f)} × ${fmt(m.hmm/f)} ${u} · ${calibrationDescription().toLowerCase()}`;
+$('scaleLine').style.width=(10*pxmm)+'px';showOverlay('actualOverlay');updateRuler();
+requestAnimationFrame(()=>{const v=$('viewport');v.scrollLeft=Math.max(0,(v.scrollWidth-v.clientWidth)/2);v.scrollTop=Math.max(0,(v.scrollHeight-v.clientHeight)/2);});
+});
+$('backActual').addEventListener('click',()=>hideOverlay('actualOverlay'));
+for(const eventName of ['contextmenu','dragstart','selectstart']){
+  $('viewport').addEventListener(eventName,e=>e.preventDefault());
+}
+// The second (optional) ruler lives in native photo coordinates. It stays aligned to
+// the photo as the user scrolls and uses the very same calibrated scale as the image.
+const rulerSvg=$('rulerSvg');let rulerDrag=null;
+const svgSet=(id,attrs)=>{const el=$(id);for(const [key,val] of Object.entries(attrs))el.setAttribute(key,String(val));};
+function initializeRuler(){
+  const v=$('viewport'),stage=$('actualStage');const vr=v.getBoundingClientRect(),sr=stage.getBoundingClientRect();
+  const s=state.actualScale;const cx=clamp((vr.left+vr.width/2-sr.left)/s,0,state.photo.naturalWidth);
+  const cy=clamp((vr.top+vr.height/2-sr.top)/s,0,state.photo.naturalHeight);
+  const half=Math.min(30*currentPxmm()/s,vr.width*.25/s,state.photo.naturalWidth*.35);
+  state.rulerPts=[{x:clamp(cx-half,0,state.photo.naturalWidth),y:cy},{x:clamp(cx+half,0,state.photo.naturalWidth),y:cy}];
+}
+function updateRuler(){
+  const isOn=state.rulerOn && Boolean(state.rulerPts);
+  if(isOn)rulerSvg.removeAttribute('hidden');else rulerSvg.setAttribute('hidden','');
+  $('toggleRuler').setAttribute('aria-pressed',String(state.rulerOn));
+  $('toggleRuler').textContent=state.rulerOn?'Hide measure':'Measure';
+  $('measureValue').hidden=!isOn;
+  $('measureHint').textContent=isOn?'Drag ticks to resize · line or label to move':'Swipe to move around the photo';
+  if(!isOn)return;
+  const m=measurement(),s=state.actualScale;
+  if(!m||!s)return;
+  const width=state.photo.naturalWidth*s,height=state.photo.naturalHeight*s;
+  svgSet('rulerSvg',{viewBox:`0 0 ${width} ${height}`});
+  const [a,b]=state.rulerPts.map(p=>({x:p.x*s,y:p.y*s}));
+  const dx=b.x-a.x,dy=b.y-a.y,len=Math.hypot(dx,dy),nx=-(dy/(len||1)),ny=dx/(len||1);
+  const t=13;
+  const path=`M ${a.x} ${a.y} L ${b.x} ${b.y} M ${a.x-nx*t} ${a.y-ny*t} L ${a.x+nx*t} ${a.y+ny*t} M ${b.x-nx*t} ${b.y-ny*t} L ${b.x+nx*t} ${b.y+ny*t}`;
+  svgSet('rulerShadow',{d:path});svgSet('rulerVisual',{d:path});
+  svgSet('rulerLineHit',{x1:a.x,y1:a.y,x2:b.x,y2:b.y});
+  svgSet('rulerAHit',{cx:a.x,cy:a.y});svgSet('rulerBHit',{cx:b.x,cy:b.y});
+  const factor=FACTOR[$('units').value],unit=$('units').value==='in'?'in':$('units').value;
+  const text=`${fmt(distance(...state.rulerPts)*m.mmPerPixel/factor)} ${unit}`;
+  $('measureValue').textContent=text;
+  $('rulerLabelText').textContent=text;
+  const labelWidth=Math.max(65,Math.min(180,text.length*8+18));
+  svgSet('rulerLabelBg',{x:-labelWidth/2,y:-15,width:labelWidth,height:24});
+  svgSet('rulerLabelHit',{x:-labelWidth/2-13,y:-26,width:labelWidth+26,height:47});
+  const mx=(a.x+b.x)/2,my=(a.y+b.y)/2;
+  const lx=clamp(mx,labelWidth/2+4,Math.max(labelWidth/2+4,width-labelWidth/2-4));
+  const ly=my<38?my+35:my-27;
+  svgSet('rulerLabel',{transform:`translate(${lx} ${ly})`});
+}
+$('toggleRuler').addEventListener('click',()=>{
+  state.rulerOn=!state.rulerOn;
+  if(state.rulerOn&&!state.rulerPts)initializeRuler();
+  updateRuler();
+});
+rulerSvg.addEventListener('pointerdown',e=>{
+  const kind=e.target.dataset?.handle;
+  if(!state.rulerOn||!kind||!state.rulerPts)return;
+  e.preventDefault();e.stopPropagation();
+  rulerSvg.setPointerCapture(e.pointerId);
+  rulerDrag={id:e.pointerId,kind,lastX:e.clientX,lastY:e.clientY};
+  rulerSvg.classList.add('rulerDragging');
+});
+rulerSvg.addEventListener('pointermove',e=>{
+  if(!rulerDrag||e.pointerId!==rulerDrag.id)return;
+  e.preventDefault();
+  const dx=(e.clientX-rulerDrag.lastX)/state.actualScale,dy=(e.clientY-rulerDrag.lastY)/state.actualScale;
+  rulerDrag.lastX=e.clientX;rulerDrag.lastY=e.clientY;
+  const indices=rulerDrag.kind==='a'?[0]:rulerDrag.kind==='b'?[1]:[0,1];
+  for(const i of indices){state.rulerPts[i].x+=dx;state.rulerPts[i].y+=dy;}
+  // Keep the two endpoint coordinates on the photo; no crop is imposed.
+  if(indices.length===2){
+    const W=state.photo.naturalWidth,H=state.photo.naturalHeight;
+    const loX=Math.min(...state.rulerPts.map(p=>p.x)),hiX=Math.max(...state.rulerPts.map(p=>p.x));
+    const loY=Math.min(...state.rulerPts.map(p=>p.y)),hiY=Math.max(...state.rulerPts.map(p=>p.y));
+    const tx=loX<0?-loX:hiX>W?W-hiX:0,ty=loY<0?-loY:hiY>H?H-hiY:0;
+    for(const p of state.rulerPts){p.x+=tx;p.y+=ty;}
+  }else{
+    const p=state.rulerPts[indices[0]];
+    p.x=clamp(p.x,0,state.photo.naturalWidth);p.y=clamp(p.y,0,state.photo.naturalHeight);
+  }
+  updateRuler();
+});
+function finishRuler(e){if(rulerDrag&&rulerDrag.id===e.pointerId){rulerDrag=null;rulerSvg.classList.remove('rulerDragging');try{rulerSvg.releasePointerCapture(e.pointerId);}catch{}}}
+rulerSvg.addEventListener('pointerup',finishRuler);rulerSvg.addEventListener('pointercancel',finishRuler);rulerSvg.addEventListener('lostpointercapture',finishRuler);
+
+document.addEventListener('keydown',e=>{if(e.key==='Escape'){if(!$('cardOverlay').hidden)hideOverlay('cardOverlay');else if(!$('actualOverlay').hidden)hideOverlay('actualOverlay');}});
+window.addEventListener('resize',()=>{if(!$('cardOverlay').hidden)cardBounds();if(state.photo)updateCanvas();updateCal();});
+// Setup: retain previous calibration; otherwise offer Pixel 7 as a documented preset.
+readStorage();$('phoneSelect').value=state.phone;$('customSpecs').hidden=state.phone!=='custom';
+$('specWidth').value=state.custom.w??'';$('specHeight').value=state.custom.h??'';$('specDiagonal').value=state.custom.diag??'';
+$('calDetails').open=!currentPxmm();updateCal();
+})();
+</script>
+</body>
+</html>
